@@ -53,14 +53,14 @@ VkSurfaceKHR WindowSubsystem::create_window_surface(VkInstance instance) const
         VkXlibSurfaceCreateInfoKHR create_info {};
         create_info.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
         create_info.dpy = glfwGetX11Display();
-        create_info.window = glfwGetX11Window(window);
+        create_info.window = glfwGetX11Window(m_window);
 
         VK_CHECK(vkCreateXlibSurfaceKHR(instance, &create_info, nullptr, &surface));
     } else {
         VkWaylandSurfaceCreateInfoKHR create_info {};
         create_info.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
         create_info.display = glfwGetWaylandDisplay();
-        create_info.surface = glfwGetWaylandWindow(window);
+        create_info.surface = glfwGetWaylandWindow(m_window);
 
         VK_CHECK(vkCreateWaylandSurfaceKHR(instance, &create_info, nullptr, &surface));
     }
