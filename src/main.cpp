@@ -20,6 +20,18 @@ int32_t main(int32_t argc, char** argv)
         return -1;
     }
 
+    while (!window->should_close()) {
+        window->poll_events();
+
+        auto frame = renderer->try_get_frame();
+        if (!frame)
+            continue;
+
+        frame.begin(0.1f, 0.1f, 0.1f, 1.0f);
+        frame.end();
+        frame.submit_and_present();
+    }
+
     renderer->deinit();
     window->deinit();
 }

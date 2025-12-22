@@ -42,18 +42,20 @@ VKHGraphicsPipelineBuilder::VKHGraphicsPipelineBuilder(VkDevice device)
 
 VKHGraphicsPipelineBuilder& VKHGraphicsPipelineBuilder::set_rendering_format(
     VkFormat color_format,
-    VkFormat depth_format)
+    VkFormat depth_format,
+    VkFormat stencil_format)
 {
     m_pipeline_rendering_info_done = true;
 
     m_color_format = color_format;
     m_depth_format = depth_format;
+    m_stencil_format = stencil_format;
 
     m_pipeline_rendering_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     m_pipeline_rendering_info.colorAttachmentCount = 1;
     m_pipeline_rendering_info.pColorAttachmentFormats = &m_color_format;
     m_pipeline_rendering_info.depthAttachmentFormat = m_depth_format;
-    m_pipeline_rendering_info.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+    m_pipeline_rendering_info.stencilAttachmentFormat = m_stencil_format;
 
     return *this;
 }

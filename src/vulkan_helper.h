@@ -54,7 +54,8 @@ public:
 
     VKHGraphicsPipelineBuilder& set_rendering_format(
         VkFormat color_format,
-        VkFormat depth_format);
+        VkFormat depth_format = VK_FORMAT_UNDEFINED,
+        VkFormat stencil_format = VK_FORMAT_UNDEFINED);
 
     VKHGraphicsPipelineBuilder& set_vertex_and_fragment(
         VkShaderModule vertex,
@@ -115,6 +116,7 @@ private:
 
     VkFormat m_color_format;
     VkFormat m_depth_format;
+    VkFormat m_stencil_format;
     VkPipelineRenderingCreateInfo m_pipeline_rendering_info {};
     bool m_pipeline_rendering_info_done { false };
 

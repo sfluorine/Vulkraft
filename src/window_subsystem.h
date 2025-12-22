@@ -38,6 +38,10 @@ public:
 
     void deinit();
 
+    void poll_events() const { return glfwPollEvents(); }
+
+    bool should_close() const { return glfwWindowShouldClose(m_window); }
+
     VkSurfaceKHR create_window_surface(VkInstance instance) const;
 
     FrameBufferSize get_framebuffer_size() const;
