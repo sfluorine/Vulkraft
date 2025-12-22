@@ -1,10 +1,12 @@
 #pragma once
 
-#include <volk.h>
+#include <fmt/base.h>
 
 #include <cstdlib>
 #include <unordered_set>
 #include <vector>
+
+#include "vulkan.h"
 
 #define VKH_SHADER_STAGE_VERTEX 0
 #define VKH_SHADER_STAGE_FRAGMENT 1

@@ -26,6 +26,7 @@ add_executable(
   src/main.cpp
   src/platform.h
   src/helper.h
+  src/vulkan.h
   src/vulkan_helper.h
   src/vulkan_helper.cpp
   src/subsystem.h

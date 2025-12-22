@@ -1,7 +1,5 @@
 #include "vulkan_helper.h"
 
-#include <fmt/base.h>
-
 VKHVertexLayoutBuilder& VKHVertexLayoutBuilder::push_binding(
     uint32_t binding,
     uint32_t stride,
