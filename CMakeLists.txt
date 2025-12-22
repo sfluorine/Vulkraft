@@ -31,7 +31,11 @@ add_executable(
   src/subsystem.h
   src/window_subsystem.h
   src/window_subsystem.cpp
+  src/renderer_subsystem.h
+  src/renderer_subsystem.cpp
 )
+
+target_compile_definitions(Vulkraft PRIVATE GLFW_INCLUDE_NONE)
 
 if(WIN32)
   if (${CMAKE_BUILD_TYPE} STREQUAL "Release")

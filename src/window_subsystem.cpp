@@ -1,9 +1,7 @@
-#include <fmt/format.h>
-
 #include "vulkan_helper.h"
 #include "window_subsystem.h"
 
-Subsystem::InitResult WindowSubsystem::init(char const* title, uint32_t width, uint32_t height, bool resizable)
+Subsystem::InitResult<void> WindowSubsystem::init(char const* title, uint32_t width, uint32_t height, bool resizable)
 {
     if (m_initialized)
         return MAKE_SUBSYSTEM_INIT_SUCCESS();
@@ -17,8 +15,8 @@ Subsystem::InitResult WindowSubsystem::init(char const* title, uint32_t width, u
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, resizable);
 
-    auto window = glfwCreateWindow(width, height, title, nullptr, nullptr);
-    if (!window) {
+    m_window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+    if (!m_window) {
         char const* description { nullptr };
         auto error = glfwGetError(&description);
         return MAKE_SUBSYSTEM_INIT_ERROR("{}: {}", description, error);
@@ -35,6 +33,8 @@ void WindowSubsystem::deinit()
 
     glfwDestroyWindow(m_window);
     glfwTerminate();
+
+    m_initialized = false;
 }
 
 VkSurfaceKHR WindowSubsystem::create_window_surface(VkInstance instance) const
@@ -76,9 +76,4 @@ FrameBufferSize WindowSubsystem::get_framebuffer_size() const
     FrameBufferSize size {};
     glfwGetFramebufferSize(m_window, &size.width, &size.height);
     return size;
-}
-
-GLFWwindow* WindowSubsystem::get_window_handle() const
-{
-    return m_window;
 }

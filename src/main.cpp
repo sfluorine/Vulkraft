@@ -5,9 +5,21 @@
 #    include "platform.h"
 #endif
 
-#include "window_subsystem.h"
+#include "renderer_subsystem.h"
 
 int32_t main(int32_t argc, char** argv)
 {
-    WindowSubsystem::instance()->init("Vulkraft", 800, 600);
+    auto window = WindowSubsystem::instance();
+    if (auto result = window->init("Vulkraft", 800, 600); !result) {
+        fmt::println(stderr, "{}", result.message);
+        return -1;
+    }
+    auto renderer = RendererSubsystem::instance();
+    if (auto result = renderer->init(window); !result) {
+        fmt::println(stderr, "{}", result.message);
+        return -1;
+    }
+
+    renderer->deinit();
+    window->deinit();
 }
