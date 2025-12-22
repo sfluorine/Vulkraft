@@ -428,10 +428,13 @@ void RendererSubsystem::init_swapchain(
 {
     auto [format, color_space] = get_surface_format();
 
+    VkSurfaceCapabilitiesKHR surface_capabilities {};
+    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_device, m_surface, &surface_capabilities));
+
     VkSwapchainCreateInfoKHR create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create_info.surface = m_surface;
-    create_info.minImageCount = FRAMES_IN_FLIGHT;
+    create_info.minImageCount = surface_capabilities.minImageCount;
     create_info.imageFormat = format;
     create_info.imageColorSpace = color_space;
     create_info.imageExtent = { frame_buffer_width, frame_buffer_height };
