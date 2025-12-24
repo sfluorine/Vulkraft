@@ -179,19 +179,21 @@ void RenderingInstance::present_surface()
     VK_CHECK(vkQueuePresentKHR(m_info.queue, &present_info));
 }
 
-void FrameManager::init(
-    VkDevice device,
-    uint32_t queue_family)
+void FrameManager::init(FrameManagerInfo const& info)
 {
-    m_device = device;
-    m_queue_family = queue_family;
+    m_device = info.device;
+    m_queue_family = info.queue_family;
+
+    VkSurfaceCapabilitiesKHR surface_capabilities {};
+    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(info.physical_device, info.surface, &surface_capabilities));
+    m_frames_in_flight = surface_capabilities.minImageCount;
 
     init_synchros_and_command_buffers();
 }
 
 void FrameManager::deinit()
 {
-    for (auto i { 0 }; i < FRAMES_IN_FLIGHT; i++) {
+    for (auto i { 0 }; i < m_frames_in_flight; i++) {
         vkFreeCommandBuffers(m_device, m_cmd_pools[i], 1, &m_cmd_buffers[i]);
         vkDestroyCommandPool(m_device, m_cmd_pools[i], nullptr);
 
@@ -203,7 +205,7 @@ void FrameManager::deinit()
 
 Frame FrameManager::get_frame()
 {
-    auto current_frame = m_current_frame++ % FRAMES_IN_FLIGHT;
+    auto current_frame = m_current_frame++ % m_frames_in_flight;
     auto fence = m_fences[current_frame];
     auto image_acquired_semaphore = m_image_acquired_semaphores[current_frame];
     auto render_completed_semaphore = m_render_completed_semaphores[current_frame];
@@ -215,6 +217,12 @@ Frame FrameManager::get_frame()
 
 void FrameManager::init_synchros_and_command_buffers()
 {
+    m_fences.resize(m_frames_in_flight);
+    m_image_acquired_semaphores.resize(m_frames_in_flight);
+    m_render_completed_semaphores.resize(m_frames_in_flight);
+    m_cmd_pools.resize(m_frames_in_flight);
+    m_cmd_buffers.resize(m_frames_in_flight);
+
     VkFenceCreateInfo fence_create_info {};
     fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
@@ -227,7 +235,7 @@ void FrameManager::init_synchros_and_command_buffers()
     cmd_pool_create_info.queueFamilyIndex = m_queue_family;
     cmd_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-    for (auto i { 0 }; i < FRAMES_IN_FLIGHT; i++) {
+    for (auto i { 0 }; i < m_frames_in_flight; i++) {
         VK_CHECK(vkCreateFence(m_device, &fence_create_info, nullptr, &m_fences[i]));
         VK_CHECK(vkCreateSemaphore(m_device, &semaphore_create_info, nullptr, &m_image_acquired_semaphores[i]));
         VK_CHECK(vkCreateSemaphore(m_device, &semaphore_create_info, nullptr, &m_render_completed_semaphores[i]));
@@ -303,7 +311,12 @@ Subsystem::InitResult<void> RendererSubsystem::init(WindowSubsystem* window)
     auto [width, height] = window->get_framebuffer_size();
     init_swapchain(width, height);
 
-    m_frame_manager.init(m_device, m_queue_family);
+    FrameManagerInfo frame_manager_info {};
+    frame_manager_info.surface = m_surface;
+    frame_manager_info.physical_device = m_physical_device;
+    frame_manager_info.device = m_device;
+    frame_manager_info.queue_family = m_queue_family;
+    m_frame_manager.init(frame_manager_info);
 
     m_initialized = true;
     return MAKE_SUBSYSTEM_INIT_SUCCESS();

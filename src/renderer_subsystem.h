@@ -6,8 +6,6 @@
 #include "subsystem.h"
 #include "window_subsystem.h"
 
-static constexpr uint32_t FRAMES_IN_FLIGHT = 3;
-
 struct RenderingInstanceInfo {
     VkImage image;
     VkImageView image_view;
@@ -76,6 +74,13 @@ struct Frame {
     VkCommandBuffer cmd_buffer;
 };
 
+struct FrameManagerInfo {
+    VkSurfaceKHR surface;
+    VkPhysicalDevice physical_device;
+    VkDevice device;
+    uint32_t queue_family;
+};
+
 class FrameManager {
     MAKE_NON_COPYABLE(FrameManager);
     MAKE_NON_MOVABLE(FrameManager);
@@ -83,7 +88,7 @@ class FrameManager {
 public:
     FrameManager() = default;
 
-    void init(VkDevice device, uint32_t queue_family);
+    void init(FrameManagerInfo const& info);
 
     void deinit();
 
@@ -93,12 +98,13 @@ private:
     void init_synchros_and_command_buffers();
 
 private:
-    VkFence m_fences[FRAMES_IN_FLIGHT];
-    VkSemaphore m_image_acquired_semaphores[FRAMES_IN_FLIGHT];
-    VkSemaphore m_render_completed_semaphores[FRAMES_IN_FLIGHT];
-    VkCommandBuffer m_cmd_buffers[FRAMES_IN_FLIGHT];
-    VkCommandPool m_cmd_pools[FRAMES_IN_FLIGHT];
+    std::vector<VkFence> m_fences;
+    std::vector<VkSemaphore> m_image_acquired_semaphores;
+    std::vector<VkSemaphore> m_render_completed_semaphores;
+    std::vector<VkCommandPool> m_cmd_pools;
+    std::vector<VkCommandBuffer> m_cmd_buffers;
     uint32_t m_current_frame { 0 };
+    uint32_t m_frames_in_flight {};
 
     VkDevice m_device { nullptr };
     uint32_t m_queue_family {};
