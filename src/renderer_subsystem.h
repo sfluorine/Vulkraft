@@ -48,6 +48,8 @@ private:
 
     void end_rendering();
 
+    void set_viewport_scissor();
+
     void transtition_image(
         VkPipelineStageFlags2 src_stage,
         VkAccessFlags2 src_access,

@@ -39,6 +39,7 @@ void RenderingInstance::begin(float r, float g, float b, float a)
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     begin_rendering(r, g, b, a);
+    set_viewport_scissor();
 }
 
 void RenderingInstance::end()
@@ -103,6 +104,24 @@ void RenderingInstance::begin_rendering(float r, float g, float b, float a)
 void RenderingInstance::end_rendering()
 {
     vkCmdEndRendering(m_info.cmd_buffer);
+}
+
+void RenderingInstance::set_viewport_scissor()
+{
+    VkViewport viewport {};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(m_info.swapchain_extent.width);
+    viewport.height = static_cast<float>(m_info.swapchain_extent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor {};
+    scissor.offset = { 0, 0 };
+    scissor.extent = m_info.swapchain_extent;
+
+    vkCmdSetViewport(m_info.cmd_buffer, 0, 1, &viewport);
+    vkCmdSetScissor(m_info.cmd_buffer, 0, 1, &scissor);
 }
 
 void RenderingInstance::transtition_image(
