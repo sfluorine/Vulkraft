@@ -16,7 +16,7 @@ enum class Color {
 int32_t main(int32_t argc, char** argv)
 {
     auto window = WindowSubsystem::instance();
-    if (auto result = window->init("Vulkraft", 800, 600); !result) {
+    if (auto result = window->init("Vulkraft", 800, 600, true); !result) {
         fmt::println(stderr, "{}", result.message);
         return -1;
     }

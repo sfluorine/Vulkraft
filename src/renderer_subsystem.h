@@ -125,6 +125,8 @@ public:
 
     void deinit();
 
+    void request_recreate_swapchain();
+
     RenderingInstance try_get_frame();
 
     VkSurfaceFormatKHR get_surface_format() const { return { VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR }; }
@@ -138,7 +140,7 @@ private:
 
     Subsystem::InitResult<vkb::Device> init_device(vkb::PhysicalDevice& physical_device);
 
-    void init_swapchain(uint32_t frame_buffer_width, uint32_t frame_buffer_height);
+    void init_swapchain();
 
 private:
     WindowSubsystem* m_window { nullptr };
@@ -157,5 +159,6 @@ private:
     std::vector<VkImageView> m_swapchain_image_views;
     VkExtent2D m_swapchain_extent {};
 
+    bool m_request_recreate_swapchain { false };
     bool m_initialized { false };
 };

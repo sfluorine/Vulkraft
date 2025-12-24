@@ -176,7 +176,15 @@ void RenderingInstance::present_surface()
     present_info.pSwapchains = &m_info.swapchain;
     present_info.pImageIndices = &m_info.swapchain_image_index;
 
-    VK_CHECK(vkQueuePresentKHR(m_info.queue, &present_info));
+    auto result = vkQueuePresentKHR(m_info.queue, &present_info);
+    switch (result) {
+    case VK_SUBOPTIMAL_KHR:
+    case VK_ERROR_OUT_OF_DATE_KHR:
+        RendererSubsystem::instance()->request_recreate_swapchain();
+        break;
+    default:
+        VK_CHECK(result);
+    }
 }
 
 void FrameManager::init(FrameManagerInfo const& info)
@@ -308,8 +316,7 @@ Subsystem::InitResult<void> RendererSubsystem::init(WindowSubsystem* window)
     m_queue = queue;
     m_queue_family = queue_family;
 
-    auto [width, height] = window->get_framebuffer_size();
-    init_swapchain(width, height);
+    init_swapchain();
 
     FrameManagerInfo frame_manager_info {};
     frame_manager_info.surface = m_surface;
@@ -344,13 +351,22 @@ void RendererSubsystem::deinit()
     m_initialized = false;
 }
 
+void RendererSubsystem::request_recreate_swapchain()
+{
+    m_request_recreate_swapchain = true;
+}
+
 RenderingInstance RendererSubsystem::try_get_frame()
 {
-    auto [width, height] = m_window->get_framebuffer_size();
+    if (m_request_recreate_swapchain)
+        init_swapchain();
+
     auto frame = m_frame_manager.get_frame();
 
     VK_CHECK(vkWaitForFences(m_device, 1, &frame.fence, VK_TRUE, UINT64_MAX));
     VK_CHECK(vkResetFences(m_device, 1, &frame.fence));
+
+    uint32_t swapchain_image_index {};
 
     VkAcquireNextImageInfoKHR acquire_info {};
     acquire_info.sType = VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR;
@@ -358,15 +374,11 @@ RenderingInstance RendererSubsystem::try_get_frame()
     acquire_info.semaphore = frame.image_acquired_semaphore;
     acquire_info.swapchain = m_swapchain;
     acquire_info.timeout = UINT64_MAX;
-
-    uint32_t swapchain_image_index {};
     auto result = vkAcquireNextImage2KHR(m_device, &acquire_info, &swapchain_image_index);
-    switch (result) {
-    case VK_SUBOPTIMAL_KHR:
-    case VK_ERROR_OUT_OF_DATE_KHR:
-        init_swapchain(width, height);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        init_swapchain();
         return {};
-    default:
+    } else if (result != VK_SUBOPTIMAL_KHR) {
         VK_CHECK(result);
     }
 
@@ -435,14 +447,25 @@ Subsystem::InitResult<vkb::Device> RendererSubsystem::init_device(vkb::PhysicalD
     }
 }
 
-void RendererSubsystem::init_swapchain(
-    uint32_t frame_buffer_width,
-    uint32_t frame_buffer_height)
+void RendererSubsystem::init_swapchain()
 {
+    if (m_request_recreate_swapchain)
+        VK_CHECK(vkDeviceWaitIdle(m_device));
+
+    auto [width, height] = m_window->get_framebuffer_size();
+    while (width == 0 || height == 0) {
+        auto new_framebuffer_size = m_window->get_framebuffer_size();
+        width = new_framebuffer_size.width;
+        height = new_framebuffer_size.height;
+        glfwWaitEvents();
+    }
+
     auto [format, color_space] = get_surface_format();
 
     VkSurfaceCapabilitiesKHR surface_capabilities {};
     VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_device, m_surface, &surface_capabilities));
+
+    auto old_swapchain = m_swapchain;
 
     VkSwapchainCreateInfoKHR create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -450,7 +473,7 @@ void RendererSubsystem::init_swapchain(
     create_info.minImageCount = surface_capabilities.minImageCount;
     create_info.imageFormat = format;
     create_info.imageColorSpace = color_space;
-    create_info.imageExtent = { frame_buffer_width, frame_buffer_height };
+    create_info.imageExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
     create_info.imageArrayLayers = 1;
     create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -458,9 +481,15 @@ void RendererSubsystem::init_swapchain(
     create_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
     create_info.clipped = VK_TRUE;
     create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    create_info.oldSwapchain = m_swapchain;
+    create_info.oldSwapchain = old_swapchain;
 
     VK_CHECK(vkCreateSwapchainKHR(m_device, &create_info, nullptr, &m_swapchain));
+
+    for (auto image_view : m_swapchain_image_views)
+        vkDestroyImageView(m_device, image_view, nullptr);
+
+    if (old_swapchain != VK_NULL_HANDLE)
+        vkDestroySwapchainKHR(m_device, old_swapchain, nullptr);
 
     m_swapchain_images.clear();
     m_swapchain_image_views.clear();
@@ -484,4 +513,6 @@ void RendererSubsystem::init_swapchain(
     }
 
     m_swapchain_extent = create_info.imageExtent;
+
+    m_request_recreate_swapchain = false;
 }
